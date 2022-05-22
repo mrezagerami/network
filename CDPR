@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#interface_info=`ip link | awk -F: '$0 !~ "lo|vir|wl|docker|ext|^[^0-9]"{print $2;getline}'`
+#interface_info=`ip link | awk -F: '$0 !~ "lo|vir|wl|docker|ext|ovl|stg|br-ex|genev|ovs|^[^0-9]"{print $2;getline}`
+interface_info=$(ls /sys/class/net | grep -i ^en)
+
+echo "Starting CDPR for host $HOSTNAME"
+echo "Interface(s) :  $interface_info"
+> sw_int_port.txt
+for i in $interface_info
+do
+	echo "--- Interface $i :" > CDPR
+	 echo "Checking Link Status ..."
+	status=`ethtool $i | grep -i "Link detected: yes" | awk '{print $3}'`
+	if [ $status == "yes" ]
+	then 
+		echo "Interface link status is UP"
+		cdpr -d $i >> CDPR
+		data=`cat CDPR | grep value | awk '{ print $2}'`
+		#echo "Interface Data : " $data
+		switch=`echo $data | awk '{print $1}'`
+		#echo "Switch Information : " $switch
+		port=`echo $data | awk '{print $3}'`
+		echo "$switch , $port"
+	fi
+done
